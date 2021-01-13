@@ -13,6 +13,7 @@ typedef struct person {
 	char* number;
 	char* email;
 	char* group;
+
 } Person;
 
 Person directory[CAPACITY];
@@ -37,7 +38,7 @@ void print_person(Person p);
 
 int main() {
 	char command_line[BUFFER_LENGTH];
-	char* command, *argument;
+	char* command, * argument;
 	char name_str[BUFFER_LENGTH];
 
 	while (1) {
@@ -80,7 +81,7 @@ int main() {
 				continue;
 			}
 			remove(name_str);
-			}
+		}
 		else if (strcmp(command, "save") == 0) {
 			argument = strtok(NULL, " ");
 			if (strcmp(argument, "as") != 0) {
@@ -105,7 +106,7 @@ int main() {
 //fget, getline을 사용할 수도 있지만 디테일한 출력값을 모두 알고 활용하기 귀찮기 때문에 
 //보통 함수를 만들어서 사용한다.
 // stdin FILE 포인터는 키보드로 부터의 입력을 의미한다.
-int read_line(FILE *fp, char str[], int n) {
+int read_line(FILE* fp, char str[], int n) {
 	int ch, i = 0;
 
 	//getchar()는 정수를 반환한다.
