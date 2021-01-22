@@ -1,17 +1,26 @@
-#include "library.h"
+#pragma warning(disable:4996) //strtok 경고 없애기
 
+#include "library.h"
+#include "string_tools.h"
 
 
 #define NUM_CHARS 256 //2^8 = 256
-
+#define BUFFER_LENGTH 200
+#define SIZE_INDEX_TABLE 100
 
 Artist *artist_directory[NUM_CHARS];
+SNode *index_directory[SIZE_INDEX_TABLE];
+
+
+
 int num_index = 0;
+
 void insert_node(Artist* ptr_artist, SNode* ptr_snode);
 void print_artist(Artist* p);
 void print_song(Song *ptr_song);
 Artist* find_artist(char* name);
-
+SNode* find_snode(Artist* ptr_artist, char* title);
+void insert_to_index_directory(Song* ptr_song);
 
 
 
@@ -20,6 +29,91 @@ void initialize() {
 	for (int i = 0; i < NUM_CHARS; i++) {
 		artist_directory[i] = NULL;
 	}
+	for (int i = 0; i < SIZE_INDEX_TABLE; i++) {
+		index_directory[i] = NULL;
+	}
+}
+
+void load(FILE* fp) {
+
+	char buffer[BUFFER_LENGTH];
+	char* name, *title, *path;
+
+	while (1) {  //infinite loop
+		if (read_line(fp, buffer, BUFFER_LENGTH) <= 0) { //get a line
+			break;
+		}
+		name = strtok(buffer, "#");
+		if (strcmp(name, " ") == 0) {
+			name = NULL;
+		}
+		else {
+			name = _strdup(name);
+		}
+
+		title = strtok(NULL, "#");
+		if (strcmp(title, " ") == 0) {
+			title = NULL;
+		}
+		else {
+			title = _strdup(title);
+		}
+
+		path = strtok(NULL, "#");
+		if (strcmp(path, " ") == 0) {
+			path = NULL;
+		}
+		else {
+			path = _strdup(path);
+		}
+
+		add_song(name, title, path);
+	}
+
+
+
+}
+
+void search_song(char* artist, char* title) {
+	Artist* ptr_artist = find_artist(artist);
+	if (ptr_artist == NULL) {
+		printf("No such artist exists");
+		return;
+	}
+	SNode* ptr_snode = find_snode(ptr_artist, title);
+
+	if (ptr_snode != NULL) {
+		printf("Found:\n");
+		print_song(ptr_snode->song);/////////////////////////
+	}
+	else {
+		printf("No such song exists.\n");
+		return;
+	}
+}
+
+SNode* find_snode(Artist* ptr_artist, char* title) {
+	SNode* ptr_snode = ptr_artist->head;
+	while (ptr_snode != NULL && strcmp(ptr_snode->song->title, title) < 0) { //오름차순 정렬이 되어있으므로 클 때는 비교하지 않아도 된다.
+		ptr_snode = ptr_snode->next; ///////////////////
+	}
+
+	if (ptr_snode != NULL && strcmp(ptr_snode->song->title, title) == 0) {
+		return ptr_snode;
+	}
+	else {
+		return NULL;
+	}
+}
+
+void search_song(char* artist) {
+	Artist* ptr_artist = find_artist(artist);
+	if (ptr_artist == NULL) {
+		printf("No such artist exists");
+		return;
+	}
+	printf("Found:\n");
+	print_artist(ptr_artist);
 }
 
 Artist* create_artist_instance(char* name) {
@@ -89,8 +183,33 @@ void add_song(char* artist, char* title, char* path) {
 
 	// insert node
 	insert_node(ptr_artist, ptr_snode);
+	insert_to_index_directory(ptr_song);
 
+}
 
+void insert_to_index_directory(Song *ptr_song) {
+	SNode* ptr_snode = (SNode*)malloc(sizeof(SNode));
+	ptr_snode->song = ptr_song;
+	ptr_snode->next = NULL;
+	ptr_snode->prev = NULL; // unused
+
+	int index = ptr_song->index% SIZE_INDEX_TABLE;
+
+	// insert the snode into the single linked list at index_table[index]
+	SNode* p = index_directory[index];
+	SNode* q = NULL;
+	while (p != NULL && strcmp(p->song->title, ptr_song->title) < 0) {
+		q = p;
+		p = p->next;
+	}
+	if (q == NULL) { // add_first
+		ptr_snode->next = p;
+		index_directory[index] = ptr_snode;
+	}
+	else { // add_after q
+		ptr_snode->next = p;
+		q->next = ptr_snode;
+	}
 }
 
 void insert_node(Artist* ptr_artist, SNode* ptr_snode) {
@@ -114,7 +233,7 @@ void insert_node(Artist* ptr_artist, SNode* ptr_snode) {
 		ptr_artist->tail->next = ptr_snode;
 		ptr_artist->tail = ptr_snode;
 	}
-	else { // add after p
+	else { // add before p
 		ptr_snode->next = p;
 		ptr_snode->prev = p->prev;
 		p->prev->next = ptr_snode;
@@ -125,7 +244,7 @@ void insert_node(Artist* ptr_artist, SNode* ptr_snode) {
 }
 
 Artist* find_artist(char* name) {
-	Artist* p = artist_directory[ (unsigned char)name[0]]; //first artist with initial name[0]
+	Artist* p = artist_directory[(unsigned char)name[0]]; //first artist with initial name[0]
 	// name[0]: 00000000 ~ 11111111 -> 하나의 정수로 입력 (아스키코드 활용하여)
 	// 11001111 -> 음수가 되버린다. => unsigned char로 형변환
 
@@ -143,13 +262,13 @@ Artist* find_artist(char* name) {
 }
 
 void status() {
+
 	for (int i = 0; i < NUM_CHARS; i++) {
 		Artist* p = artist_directory[i];
 		while (p != NULL) {
 			print_artist(p);
 			p = p->next; 
 		}
-		
 	}
 }
 
@@ -163,5 +282,23 @@ void print_artist(Artist* p) {
 }
 
 void print_song(Song* ptr_song) {
-	printf("	%d: %s, %s\n",num_index, ptr_song->title, ptr_song->path);
+	printf("	%d: %s, %s\n",ptr_song->index, ptr_song->title, ptr_song->path);
+}
+
+SNode* find_song(int index) {
+	SNode* ptr_snode = index_directory[index % SIZE_INDEX_TABLE];
+	while (ptr_snode != NULL && ptr_snode->song->index != index) {
+		ptr_snode = ptr_snode->next;
+	}
+
+	return ptr_snode;
+}
+
+
+void play(int index) {
+	SNode* ptr_snode = find_song(index);
+	if (ptr_snode == NULL) {
+		printf("No such song exists.\n");
+	}
+	printf("Found the song: %s\n", ptr_snode->song->title);
 }
