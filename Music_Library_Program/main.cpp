@@ -14,6 +14,8 @@ void process_command();
 void handle_load();
 void handle_search();
 void handle_play();
+void handle_save();
+void handle_remove();
 
 int main() {
 
@@ -62,10 +64,10 @@ void process_command() {
 		else if(strcmp(command, "search") == 0) {
 			handle_search();
 		}
-		/*
+		
 		else if (strcmp(command, "remove") == 0) {
 			handle_remove();
-		}*/
+		}
 		else if (strcmp(command, "status") == 0) {
 			status();
 		}
@@ -73,17 +75,32 @@ void process_command() {
 		else if (strcmp(command, "play") == 0) {
 			handle_play();
 		}
-		/*
 		else if (strcmp(command, "save") == 0) {
+			char* tmp = strtok(NULL, " ");
+			if (strcmp(tmp, "as") != 0)
+				continue;
 			handle_save();
 		}
-		*/
-		/*
+	
+		
 		else if (strcmp(command, "exit") == 0) {
-			handle_exit();
+			break;
 		}
-		*/
+		
 	}
+}
+
+void handle_remove() {
+	char* id_str = strtok(NULL, " ");
+	int index = atoi(id_str);
+	remove(index);
+}
+
+void handle_save() {
+	char* file_name = strtok(NULL, " ");
+	FILE* fp = fopen(file_name, "w");
+	save(fp);
+	fclose(fp);
 }
 
 void handle_play() {

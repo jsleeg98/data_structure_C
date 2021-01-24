@@ -34,6 +34,8 @@ void load(FILE* fp);
 void search_song(char* artist, char* title);
 void search_song(char* artist);
 void play(int index);
+void save(FILE* fp);
+void remove(int index);
 
 #endif // LIBRARY_H
 
